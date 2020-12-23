@@ -55,7 +55,7 @@ impl EventHandler for Handler {
                     let mut response = "Available meme templates: ".to_string();
                     for meme in client_lock.list_memes() {
                         response.push_str(meme);
-                        response.push(' ');
+                        response.push_str(", ");
                     }
                     send_msg(&ctx, msg, &response).await;
                 } else {

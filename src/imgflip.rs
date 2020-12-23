@@ -31,7 +31,10 @@ pub struct ImgflipClient {
 impl ImgflipClient {
     pub fn new(username: String, password: String) -> Self {
         let mut meme_id_map: HashMap<&'static str, &'static str> =
-            [("drake", "181913649")].iter().cloned().collect();
+            [("drake", "181913649"), ("always has been", "252600902")]
+                .iter()
+                .cloned()
+                .collect();
         ImgflipClient {
             username,
             password,
