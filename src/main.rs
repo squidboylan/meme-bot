@@ -1,4 +1,6 @@
 use std::env;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 use serenity::{
     async_trait,
@@ -6,9 +8,17 @@ use serenity::{
     prelude::*,
 };
 
+mod imgflip;
+
+pub struct ImgflipClientContainer;
+
+impl TypeMapKey for ImgflipClientContainer {
+    type Value = Arc<RwLock<imgflip::ImgflipClient>>;
+}
+
 struct Handler;
 
-async fn send_msg(ctx: Context, msg: Message, data: &str) {
+async fn send_msg(ctx: &Context, msg: Message, data: &str) {
     if let Err(why) = msg.channel_id.say(&ctx.http, data).await {
         println!("Error sending message: {:?}", why);
     }
@@ -28,7 +38,60 @@ impl EventHandler for Handler {
             // authentication error, or lack of permissions to post in the
             // channel, so log to stdout when some error happens, with a
             // description of it.
-            send_msg(ctx, msg, "Pong!").await;
+            send_msg(&ctx, msg, "Pong!").await;
+        } else if msg.content.starts_with("!source") {
+            send_msg(
+                &ctx,
+                msg,
+                "source available at: https://github.com/squidboylan/meme-bot",
+            )
+            .await;
+        } else if msg.content.starts_with("!meme") {
+            let split_msg: Vec<&str> = msg.content.splitn(2, " ").collect();
+            let data = ctx.data.read().await;
+            if split_msg.len() == 1 {
+                if let Some(imgflip_client) = data.get::<ImgflipClientContainer>() {
+                    let client_lock = imgflip_client.read().await;
+                    let mut response = "Available meme templates: ".to_string();
+                    for meme in client_lock.list_memes() {
+                        response.push_str(meme);
+                        response.push(' ');
+                    }
+                    send_msg(&ctx, msg, &response).await;
+                } else {
+                    send_msg(&ctx, msg, "Failed to get imgflip client").await;
+                }
+            } else {
+                let command_data: Vec<&str> = split_msg[1].split("\n").collect();
+                if command_data.len() < 3 {
+                    send_msg(&ctx, msg, "Please use !meme in the following format: !meme <MEME_NAME>\n<TEXT1>\n<TEXT2>").await;
+                    return;
+                } else {
+                    if let Some(imgflip_client) = data.get::<ImgflipClientContainer>() {
+                        let client_lock = imgflip_client.read().await;
+                        let meme_id = client_lock.get_meme_id(command_data[0]);
+                        let id = match meme_id {
+                            Some(id) => id,
+                            None => {
+                                send_msg(&ctx, msg, "That meme does not exist").await;
+                                return;
+                            }
+                        };
+                        let client_res = client_lock
+                            .caption_image(id, command_data[1], command_data[2])
+                            .await;
+                        match client_res {
+                            Ok(res) => {
+                                let response = res.data.url;
+                                send_msg(&ctx, msg, &response).await;
+                            }
+                            Err(e) => send_msg(&ctx, msg, &e.to_string()).await,
+                        }
+                    } else {
+                        send_msg(&ctx, msg, "Failed to get imgflip client").await;
+                    }
+                }
+            }
         }
     }
 
@@ -47,6 +110,13 @@ impl EventHandler for Handler {
 async fn main() {
     // Configure the client with your Discord bot token in the environment.
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
+    let username = env::var("IMGFLIP_USERNAME").expect("Expected a token in the environment");
+    let password = env::var("IMGFLIP_PASSWORD").expect("Expected a token in the environment");
+
+    let imgflip_client = Arc::new(RwLock::new(imgflip::ImgflipClient::new(
+        username.to_string(),
+        password.to_string(),
+    )));
 
     // Create a new instance of the Client, logging in as a bot. This will
     // automatically prepend your bot token with "Bot ", which is a requirement
@@ -55,6 +125,11 @@ async fn main() {
         .event_handler(Handler)
         .await
         .expect("Err creating client");
+
+    {
+        let mut data = client.data.write().await;
+        data.insert::<ImgflipClientContainer>(imgflip_client);
+    }
 
     // Finally, start a single shard, and start listening to events.
     //
