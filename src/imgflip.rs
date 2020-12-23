@@ -73,7 +73,7 @@ impl fmt::Display for Error {
 
 impl ImgflipClient {
     pub fn new(username: String, password: String) -> Self {
-        let mut meme_map: HashMap<&'static str, &'static str> = [
+        let meme_map: HashMap<&'static str, &'static str> = [
             ("drake", "181913649"),
             ("always has been", "252600902"),
             ("distracted boyfriend", "112126428"),
@@ -122,7 +122,6 @@ impl ImgflipClient {
     }
 
     pub fn list_memes<'a>(&'a self) -> Vec<&'a str> {
-        // why does this work??????
-        self.meme_map.keys().map(|x| x.as_ref()).collect()
+        self.meme_map.keys().copied().collect()
     }
 }
