@@ -66,7 +66,7 @@ impl EventHandler for Handler {
                 if let Some(imgflip_client) = data.get::<ImgflipClientContainer>() {
                     let client_lock = imgflip_client.read().await;
                     let client_res = client_lock
-                        .caption_image(command_data[0], &command_data[1..])
+                        .caption_image(command_data[0].trim(), &command_data[1..])
                         .await;
                     match client_res {
                         Ok(res) => {
