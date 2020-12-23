@@ -54,42 +54,29 @@ impl EventHandler for Handler {
                     let client_lock = imgflip_client.read().await;
                     let mut response = "Available meme templates: ".to_string();
                     for meme in client_lock.list_memes() {
-                        response.push_str(meme);
-                        response.push_str(", ");
+                        response.push_str(&format!("{}, ", meme));
                     }
+                    response.push_str("\nuse the format: !meme <Name>\n<TEXT1>\n<TEXT2>\n...");
                     send_msg(&ctx, msg, &response).await;
                 } else {
                     send_msg(&ctx, msg, "Failed to get imgflip client").await;
                 }
             } else {
                 let command_data: Vec<&str> = split_msg[1].split("\n").collect();
-                if command_data.len() < 3 {
-                    send_msg(&ctx, msg, "Please use !meme in the following format: !meme <MEME_NAME>\n<TEXT1>\n<TEXT2>").await;
-                    return;
-                } else {
-                    if let Some(imgflip_client) = data.get::<ImgflipClientContainer>() {
-                        let client_lock = imgflip_client.read().await;
-                        let meme_id = client_lock.get_meme_id(command_data[0]);
-                        let id = match meme_id {
-                            Some(id) => id,
-                            None => {
-                                send_msg(&ctx, msg, "That meme does not exist").await;
-                                return;
-                            }
-                        };
-                        let client_res = client_lock
-                            .caption_image(id, command_data[1], command_data[2])
-                            .await;
-                        match client_res {
-                            Ok(res) => {
-                                let response = res.data.url;
-                                send_msg(&ctx, msg, &response).await;
-                            }
-                            Err(e) => send_msg(&ctx, msg, &e.to_string()).await,
+                if let Some(imgflip_client) = data.get::<ImgflipClientContainer>() {
+                    let client_lock = imgflip_client.read().await;
+                    let client_res = client_lock
+                        .caption_image(command_data[0], &command_data[1..])
+                        .await;
+                    match client_res {
+                        Ok(res) => {
+                            let response = res.data.url;
+                            send_msg(&ctx, msg, &response).await;
                         }
-                    } else {
-                        send_msg(&ctx, msg, "Failed to get imgflip client").await;
+                        Err(e) => send_msg(&ctx, msg, &e.to_string()).await,
                     }
+                } else {
+                    send_msg(&ctx, msg, "Failed to get imgflip client").await;
                 }
             }
         }
