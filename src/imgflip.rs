@@ -98,7 +98,8 @@ impl ImgflipClient {
         text: &[&str],
     ) -> Result<CaptionResponse> {
         let client = reqwest::Client::new();
-        let id = self.meme_map.get(template_name).unwrap();
+        let lowercase_template_name = template_name.to_lowercase();
+        let id = self.meme_map.get::<str>(&lowercase_template_name).unwrap();
         let mut params: Vec<(String, &str)> = vec![
             ("template_id".to_string(), *id),
             ("username".to_string(), &self.username),
