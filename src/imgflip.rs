@@ -46,6 +46,7 @@ impl ImgflipClient {
             ("mask reveal", "145139900"),
             ("awkward muppet", "195162885"),
             ("evil kermit", "84341851"),
+            ("gru's plan", "131940431"),
         ]
         .iter()
         .cloned()
