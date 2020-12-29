@@ -7,8 +7,7 @@ A discord bot for generating memes using the imgflip api
 The following packages are required for compilation on Ubuntu
 
 ```shell
-sudo apt install build-essential \
-    pkg-config libssl-dev
+sudo apt install build-essential pkg-config
 ```
 
 Compile and Run
