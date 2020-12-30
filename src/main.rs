@@ -21,20 +21,24 @@ async fn update_template_map(
 ) -> ! {
     let mut inotify = Inotify::init().expect("Failed to initialize inotify");
 
-    inotify
-        .add_watch(
-            template_map_file.clone(),
-            WatchMask::CREATE | WatchMask::MODIFY,
-        )
-        .unwrap();
-
     let mut buffer = [0; 32];
-    let mut stream = inotify.event_stream(&mut buffer).unwrap();
     loop {
+        inotify
+            .add_watch(
+                template_map_file.clone(),
+                WatchMask::CREATE | WatchMask::MODIFY,
+            )
+            .unwrap();
+
+        let mut stream = inotify.event_stream(&mut buffer).unwrap();
         while let Some(event_or_error) = stream.next().await {
             let mut lock = imgflip_client.write().await;
             lock.update_template_map(&template_map_file).await;
-            println!("event: {:?}", event_or_error.unwrap());
+            let event = event_or_error.unwrap();
+            println!("event: {:?}", event);
+            if event.mask == inotify::EventMask::IGNORED {
+                break;
+            }
         }
     }
 }
