@@ -31,6 +31,7 @@ pub struct ImgflipClient {
     pub username: String,
     pub password: String,
     meme_map: HashMap<String, String>,
+    client: reqwest::Client,
 }
 
 async fn load_template_map(template_map_file: &str) -> Option<HashMap<String, String>> {
@@ -56,6 +57,7 @@ impl ImgflipClient {
             username,
             password,
             meme_map,
+            client: reqwest::Client::new(),
         }
     }
 
@@ -74,7 +76,6 @@ impl ImgflipClient {
         template_name: &str,
         text: &[&str],
     ) -> Result<CaptionResponse> {
-        let client = reqwest::Client::new();
         let lowercase_template_name = template_name.to_lowercase();
         let id = self.meme_map.get::<str>(&lowercase_template_name).unwrap();
         let mut params: Vec<(String, &str)> = vec![
@@ -85,7 +86,7 @@ impl ImgflipClient {
         for (n, l) in text.iter().enumerate() {
             params.push((format!("boxes[{}][text]", n), l));
         }
-        client
+        self.client
             .post("https://api.imgflip.com/caption_image")
             .query(&params)
             .send()
