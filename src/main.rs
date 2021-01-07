@@ -1,8 +1,8 @@
 use inotify::{Inotify, WatchMask};
 use std::env;
 use std::sync::Arc;
-use tokio::stream::StreamExt;
 use tokio::sync::RwLock;
+use tokio_stream::StreamExt;
 
 use serenity::prelude::*;
 
